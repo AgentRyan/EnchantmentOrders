@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minecraft Enchantment Order Calculator</title>
+  <meta name="description" content="Calculate the optimal enchantment order to minimize anvil XP costs in Minecraft Java Edition.">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="container">
+  <div class="header-controls">
+    <label class="dark-mode-switch">
+      <span>Dark mode</span>
+      <input type="checkbox" id="dark-mode-toggle">
+      <span class="toggle-track"></span>
+    </label>
+  </div>
+
+  <header>
+    <h1>Enchantment Order Calculator</h1>
+    <p>Find the cheapest anvil combining order for Minecraft Java Edition</p>
+  </header>
+
+  <!-- Step 1: Item Selection -->
+  <div class="section">
+    <h2><span class="section-number">1</span> Select Item</h2>
+    <div class="item-grid" id="item-grid"></div>
+  </div>
+
+  <!-- Step 2: Enchantment Selection -->
+  <div class="section hidden" id="enchantment-section">
+    <h2><span class="section-number">2</span> Choose Enchantments</h2>
+    <div class="conflict-warning hidden" id="conflict-warning"></div>
+    <div class="enchantment-list" id="enchantment-list"></div>
+
+    <!-- Multi-Book Section -->
+    <div class="multi-book-section hidden" id="multi-book-section">
+      <h3>Pre-enchanted Books (optional)</h3>
+      <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:10px;">
+        Add books that already have multiple enchantments combined on them.
+      </p>
+      <div class="multi-book-list" id="multi-book-list"></div>
+      <button class="add-multi-book-btn" id="add-multi-book-btn">+ Add Multi-Enchantment Book</button>
+    </div>
+
+    <div style="margin-top: 20px;">
+      <button class="btn-primary" id="calculate-btn" disabled onclick="calculate()">
+        Calculate Optimal Order
+      </button>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="section hidden" id="results-section">
+    <h2><span class="section-number">3</span> Optimal Order</h2>
+    <div id="results-content"></div>
+  </div>
+
+  <!-- Multi-Book Modal -->
+  <div class="modal-overlay hidden" id="multi-book-modal">
+    <div class="modal">
+      <h3>Add Multi-Enchantment Book</h3>
+      <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:12px;">
+        Select the enchantments already on this book.
+      </p>
+      <div class="enchantment-list" id="multi-book-enchantments"></div>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="multi-book-modal-cancel">Cancel</button>
+        <button class="btn-primary" style="width:auto;" id="multi-book-modal-add">Add Book</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>Enchantment data based on Minecraft Java Edition. Costs assume survival mode anvil mechanics.</p>
+  </footer>
+</div>
+
+<script src="js/enchantments.js"></script>
+<script src="js/calculator.js"></script>
+<script src="js/ui.js"></script>
+
+</body>
+</html>
