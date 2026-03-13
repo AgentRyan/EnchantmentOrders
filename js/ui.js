@@ -52,12 +52,10 @@ function selectItem(itemId) {
   selectedEnchantments = [];
   multiBooks = [];
 
-  // Update button states
   document.querySelectorAll(".item-btn").forEach(btn => {
     btn.classList.toggle("selected", btn.dataset.itemId === itemId);
   });
 
-  // Show enchantment section
   document.getElementById("enchantment-section").classList.remove("hidden");
   document.getElementById("results-section").classList.add("hidden");
   document.getElementById("multi-book-section").classList.remove("hidden");
@@ -102,21 +100,20 @@ function renderEnchantmentList() {
     }
     levelSelect.addEventListener("change", () => updateEnchantmentLevel(ench.id, parseInt(levelSelect.value)));
 
-    const multiplierInfo = document.createElement("span");
-    multiplierInfo.className = "multiplier-info";
-    multiplierInfo.textContent = `(book: ×${ench.bookMultiplier}, item: ×${ench.itemMultiplier})`;
+    const weightInfo = document.createElement("span");
+    weightInfo.className = "weight-info";
+    weightInfo.textContent = `(wt: ${ench.weight})`;
 
     row.appendChild(checkbox);
     row.appendChild(label);
     row.appendChild(levelSelect);
-    row.appendChild(multiplierInfo);
+    row.appendChild(weightInfo);
     container.appendChild(row);
   });
 }
 
 function toggleEnchantment(enchId, checked) {
   if (checked) {
-    const enchData = ENCHANTMENT_DB.find(e => e.id === enchId);
     const level = parseInt(document.getElementById(`level-${enchId}`).value);
     selectedEnchantments.push({ id: enchId, level });
     document.getElementById(`level-${enchId}`).disabled = false;
@@ -135,7 +132,6 @@ function updateEnchantmentLevel(enchId, level) {
 }
 
 function updateConflictWarnings() {
-  // Clear old warnings
   document.querySelectorAll(".enchantment-row").forEach(row => {
     row.classList.remove("conflict");
   });
@@ -279,49 +275,32 @@ function calculate() {
   const ids = selectedEnchantments.map(e => e.id);
   if (findConflicts(ids).length > 0) return;
 
-  // Create the target item (no enchantments, not a book)
-  const itemName = ITEM_CATEGORIES.find(c => c.id === selectedItem).name;
-  const targetItem = new AnvilItem({}, 0, false, itemName);
-
-  // Create individual books for each selected enchantment
-  const books = selectedEnchantments.map(e => {
-    const enchData = ENCHANTMENT_DB.find(ed => ed.id === e.id);
-    const label = enchData.name + (enchData.maxLevel > 1 ? " " + toRoman(e.level) : "");
-    return new AnvilItem({ [e.id]: e.level }, 0, true, label);
-  });
-
-  // Add multi-enchantment books
-  multiBooks.forEach(mb => {
-    books.push(new AnvilItem(mb.enchantments, 0, true, mb.label));
-  });
-
-  if (books.length === 0) return;
+  if (selectedEnchantments.length === 0 && multiBooks.length === 0) return;
 
   // Show loading state
   const resultsSection = document.getElementById("results-section");
   resultsSection.classList.remove("hidden");
   document.getElementById("results-content").innerHTML = '<div class="loading">Calculating optimal order...</div>';
 
-  // Use setTimeout to allow UI to update before heavy computation
   setTimeout(() => {
-    const useGreedy = books.length > 8;
-    let result;
-
-    if (useGreedy) {
-      result = greedyMerge(targetItem, books);
-    } else {
-      result = findOptimalOrder(targetItem, books);
-    }
-
-    renderResults(result, useGreedy, books.length);
+    const result = calculateOptimalOrder(selectedItem, selectedEnchantments, multiBooks);
+    renderResults(result);
   }, 50);
 }
 
 // ==================== Results Rendering ====================
 
-function renderResults(result, usedGreedy, bookCount) {
+function renderResults(result) {
   const container = document.getElementById("results-content");
   container.innerHTML = "";
+
+  if (result.error) {
+    const errorDiv = document.createElement("div");
+    errorDiv.className = "too-expensive-warning";
+    errorDiv.textContent = result.error;
+    container.appendChild(errorDiv);
+    return;
+  }
 
   // Summary
   const summary = document.createElement("div");
@@ -329,35 +308,35 @@ function renderResults(result, usedGreedy, bookCount) {
 
   const totalCostEl = document.createElement("div");
   totalCostEl.className = "total-cost" + (result.tooExpensive ? " too-expensive" : "");
-  totalCostEl.innerHTML = `<span class="cost-label">Total XP Cost:</span> <span class="cost-value">${result.totalCost} levels</span>`;
+  totalCostEl.innerHTML = `
+    <span class="cost-label">Total:</span>
+    <span class="cost-value">${result.totalLevels} levels</span>
+    <span class="cost-xp">(${Math.floor(result.totalXP)} XP)</span>
+  `;
   summary.appendChild(totalCostEl);
 
   if (result.tooExpensive) {
     const warning = document.createElement("div");
     warning.className = "too-expensive-warning";
-    warning.textContent = "One or more steps exceed the 40-level survival mode cap. Consider using fewer enchantments or creative mode.";
+    warning.textContent = "One or more steps exceed the 39-level survival mode cap. Consider using fewer enchantments or creative mode.";
     summary.appendChild(warning);
-  }
-
-  if (usedGreedy) {
-    const note = document.createElement("div");
-    note.className = "greedy-note";
-    note.textContent = `Used heuristic optimization (${bookCount} books). For guaranteed optimal results, use 8 or fewer enchantments.`;
-    summary.appendChild(note);
   }
 
   container.appendChild(summary);
 
   // Step-by-step instructions
+  if (result.instructions.length === 0) return;
+
   const stepsSection = document.createElement("div");
   stepsSection.className = "steps-section";
   const stepsTitle = document.createElement("h3");
   stepsTitle.textContent = "Step-by-Step Instructions";
   stepsSection.appendChild(stepsTitle);
 
-  result.steps.forEach((step, idx) => {
+  result.instructions.forEach((step, idx) => {
+    const isTooExpensive = step.mergeCost > MAXIMUM_MERGE_LEVELS;
     const stepEl = document.createElement("div");
-    stepEl.className = "step" + (step.tooExpensive ? " step-too-expensive" : "");
+    stepEl.className = "step" + (isTooExpensive ? " step-too-expensive" : "");
 
     const stepNum = document.createElement("div");
     stepNum.className = "step-number";
@@ -366,9 +345,12 @@ function renderResults(result, usedGreedy, bookCount) {
     const stepDetail = document.createElement("div");
     stepDetail.className = "step-detail";
 
+    const leftLabel = getStepLabel(step.left);
+    const rightLabel = getStepLabel(step.right);
+
     const targetSlot = document.createElement("div");
     targetSlot.className = "anvil-slot target-slot";
-    targetSlot.innerHTML = `<span class="slot-label">Left:</span> <span class="slot-value">${escapeHtml(step.targetLabel)}</span>`;
+    targetSlot.innerHTML = `<span class="slot-label">Left:</span> <span class="slot-value">${escapeHtml(leftLabel)}</span>`;
 
     const plusSign = document.createElement("div");
     plusSign.className = "plus-sign";
@@ -376,11 +358,11 @@ function renderResults(result, usedGreedy, bookCount) {
 
     const sacrificeSlot = document.createElement("div");
     sacrificeSlot.className = "anvil-slot sacrifice-slot";
-    sacrificeSlot.innerHTML = `<span class="slot-label">Right:</span> <span class="slot-value">${escapeHtml(step.sacrificeLabel)}</span>`;
+    sacrificeSlot.innerHTML = `<span class="slot-label">Right:</span> <span class="slot-value">${escapeHtml(rightLabel)}</span>`;
 
     const costBadge = document.createElement("div");
-    costBadge.className = "step-cost" + (step.tooExpensive ? " too-expensive" : "");
-    costBadge.textContent = `${step.cost} levels`;
+    costBadge.className = "step-cost" + (isTooExpensive ? " too-expensive" : "");
+    costBadge.innerHTML = `${step.mergeCost} lvl <span class="step-xp">(${Math.floor(step.xpCost)} XP)</span>`;
 
     stepDetail.appendChild(targetSlot);
     stepDetail.appendChild(plusSign);
@@ -393,142 +375,6 @@ function renderResults(result, usedGreedy, bookCount) {
   });
 
   container.appendChild(stepsSection);
-
-  // Visual merge tree
-  renderMergeTree(container, result.mergeTree);
-}
-
-// ==================== Merge Tree Visualization ====================
-
-function renderMergeTree(container, tree) {
-  const section = document.createElement("div");
-  section.className = "tree-section";
-  const title = document.createElement("h3");
-  title.textContent = "Merge Tree";
-  section.appendChild(title);
-
-  const treeContainer = document.createElement("div");
-  treeContainer.className = "merge-tree-container";
-
-  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.setAttribute("class", "merge-tree-svg");
-
-  // Measure and layout the tree
-  const layout = layoutTree(tree);
-  const padding = 20;
-  const svgWidth = (layout.width + 2) * padding * 3;
-  const svgHeight = (layout.height + 1) * 80 + 40;
-
-  svg.setAttribute("viewBox", `0 0 ${svgWidth} ${svgHeight}`);
-  svg.setAttribute("width", "100%");
-  svg.style.maxHeight = `${Math.min(svgHeight, 600)}px`;
-
-  drawTreeNode(svg, layout, svgWidth / 2, 30, svgWidth * 0.4, 0);
-
-  treeContainer.appendChild(svg);
-  section.appendChild(treeContainer);
-  container.appendChild(section);
-}
-
-function layoutTree(node) {
-  if (!node.left && !node.right) {
-    return {
-      node,
-      width: 1,
-      height: 0,
-      label: node.item.label || formatEnchantments(node.item.enchantments),
-    };
-  }
-  const left = node.left ? layoutTree(node.left) : null;
-  const right = node.right ? layoutTree(node.right) : null;
-  const width = (left ? left.width : 0) + (right ? right.width : 0);
-  const height = 1 + Math.max(left ? left.height : 0, right ? right.height : 0);
-  return {
-    node,
-    left,
-    right,
-    width,
-    height,
-    label: formatEnchantments(node.item.enchantments),
-    cost: node.cost,
-  };
-}
-
-function drawTreeNode(svg, layout, x, y, spread, depth) {
-  const ns = "http://www.w3.org/2000/svg";
-
-  // Draw node
-  const g = document.createElementNS(ns, "g");
-
-  // Background rect
-  const label = truncateLabel(layout.label, 25);
-  const rectWidth = Math.max(label.length * 7.5 + 16, 80);
-  const rectHeight = 32;
-
-  const rect = document.createElementNS(ns, "rect");
-  rect.setAttribute("x", x - rectWidth / 2);
-  rect.setAttribute("y", y - rectHeight / 2);
-  rect.setAttribute("width", rectWidth);
-  rect.setAttribute("height", rectHeight);
-  rect.setAttribute("rx", 6);
-  rect.setAttribute("class", layout.left ? "tree-node-merge" : "tree-node-leaf");
-  g.appendChild(rect);
-
-  // Label text
-  const text = document.createElementNS(ns, "text");
-  text.setAttribute("x", x);
-  text.setAttribute("y", y + 4);
-  text.setAttribute("text-anchor", "middle");
-  text.setAttribute("class", "tree-node-text");
-  text.textContent = label;
-  g.appendChild(text);
-
-  // Cost label for merge nodes
-  if (layout.cost) {
-    const costText = document.createElementNS(ns, "text");
-    costText.setAttribute("x", x);
-    costText.setAttribute("y", y + rectHeight / 2 + 14);
-    costText.setAttribute("text-anchor", "middle");
-    costText.setAttribute("class", "tree-cost-text" + (layout.cost >= TOO_EXPENSIVE_THRESHOLD ? " too-expensive-text" : ""));
-    costText.textContent = `${layout.cost} lvl`;
-    g.appendChild(costText);
-  }
-
-  svg.appendChild(g);
-
-  const childY = y + 80;
-  const childSpread = spread * 0.55;
-
-  // Draw children
-  if (layout.left) {
-    const leftX = x - spread;
-    // Draw line
-    const line = document.createElementNS(ns, "line");
-    line.setAttribute("x1", x);
-    line.setAttribute("y1", y + rectHeight / 2);
-    line.setAttribute("x2", leftX);
-    line.setAttribute("y2", childY - rectHeight / 2);
-    line.setAttribute("class", "tree-line");
-    svg.appendChild(line);
-    drawTreeNode(svg, layout.left, leftX, childY, childSpread, depth + 1);
-  }
-
-  if (layout.right) {
-    const rightX = x + spread;
-    const line = document.createElementNS(ns, "line");
-    line.setAttribute("x1", x);
-    line.setAttribute("y1", y + rectHeight / 2);
-    line.setAttribute("x2", rightX);
-    line.setAttribute("y2", childY - rectHeight / 2);
-    line.setAttribute("class", "tree-line");
-    svg.appendChild(line);
-    drawTreeNode(svg, layout.right, rightX, childY, childSpread, depth + 1);
-  }
-}
-
-function truncateLabel(label, maxLen) {
-  if (label.length <= maxLen) return label;
-  return label.substring(0, maxLen - 1) + "\u2026";
 }
 
 function escapeHtml(str) {
