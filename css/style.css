@@ -65,11 +65,13 @@ body {
   color: var(--text-primary);
   line-height: 1.6;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 /* ==================== Layout ==================== */
 
 .container {
+  width: 100%;
   max-width: 900px;
   margin: 0 auto;
   padding: 20px;
@@ -153,6 +155,7 @@ header p {
   padding: 24px;
   margin-bottom: 20px;
   box-shadow: var(--shadow-sm);
+  overflow: hidden;
 }
 
 .section h2 {
@@ -175,6 +178,7 @@ header p {
   border-radius: 50%;
   font-size: 0.85rem;
   font-weight: 600;
+  flex-shrink: 0;
 }
 
 .hidden {
@@ -185,7 +189,7 @@ header p {
 
 .item-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
   gap: 10px;
 }
 
@@ -202,6 +206,7 @@ header p {
   cursor: pointer;
   transition: all 0.15s;
   font-size: 0.85rem;
+  min-width: 0;
 }
 
 .item-btn:hover {
@@ -223,6 +228,8 @@ header p {
   font-weight: 500;
   text-align: center;
   line-height: 1.2;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 /* ==================== Enchantment List ==================== */
@@ -242,6 +249,7 @@ header p {
   background: var(--bg-primary);
   border: 1px solid transparent;
   transition: all 0.15s;
+  min-width: 0;
 }
 
 .enchantment-row:hover {
@@ -266,6 +274,8 @@ header p {
   cursor: pointer;
   font-weight: 500;
   font-size: 0.9rem;
+  min-width: 0;
+  overflow-wrap: break-word;
 }
 
 .level-select {
@@ -276,6 +286,7 @@ header p {
   color: var(--text-primary);
   font-size: 0.85rem;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .level-select:disabled {
@@ -283,11 +294,12 @@ header p {
   cursor: not-allowed;
 }
 
-.multiplier-info {
+.weight-info {
   color: var(--text-muted);
   font-size: 0.75rem;
   font-family: var(--font-mono);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* ==================== Conflict Warning ==================== */
@@ -328,10 +340,18 @@ header p {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   padding: 8px 12px;
   background: var(--accent-light);
   border-radius: var(--radius-sm);
   font-size: 0.85rem;
+  min-width: 0;
+}
+
+.multi-book-item span {
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .remove-book-btn {
@@ -342,6 +362,7 @@ header p {
   cursor: pointer;
   padding: 0 4px;
   line-height: 1;
+  flex-shrink: 0;
 }
 
 .add-multi-book-btn {
@@ -387,7 +408,7 @@ header p {
   background: var(--bg-secondary);
   border-radius: var(--radius-lg);
   padding: 24px;
-  max-width: 500px;
+  max-width: min(500px, calc(100vw - 40px));
   width: 100%;
   max-height: 80vh;
   overflow-y: auto;
@@ -480,6 +501,12 @@ header p {
   color: var(--success);
 }
 
+.cost-xp {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
 .total-cost.too-expensive .cost-value {
   color: var(--danger);
 }
@@ -524,6 +551,7 @@ header p {
   border-radius: var(--radius-md);
   margin-bottom: 8px;
   transition: all 0.15s;
+  min-width: 0;
 }
 
 .step:hover {
@@ -540,7 +568,7 @@ header p {
   font-size: 0.8rem;
   color: var(--accent);
   white-space: nowrap;
-  min-width: 50px;
+  flex-shrink: 0;
 }
 
 .step-detail {
@@ -549,10 +577,12 @@ header p {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  min-width: 0;
 }
 
 .anvil-slot {
   font-size: 0.85rem;
+  min-width: 0;
 }
 
 .slot-label {
@@ -565,12 +595,15 @@ header p {
 
 .slot-value {
   color: var(--text-primary);
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .plus-sign {
   color: var(--text-muted);
   font-weight: 700;
   font-size: 1.1rem;
+  flex-shrink: 0;
 }
 
 .step-cost {
@@ -582,6 +615,7 @@ header p {
   padding: 4px 10px;
   background: var(--success-light);
   border-radius: var(--radius-sm);
+  flex-shrink: 0;
 }
 
 .step-cost.too-expensive {
@@ -589,63 +623,10 @@ header p {
   background: var(--danger-light);
 }
 
-/* ==================== Merge Tree ==================== */
-
-.tree-section {
-  margin-bottom: 16px;
-}
-
-.tree-section h3 {
-  font-size: 1rem;
-  margin-bottom: 12px;
-  color: var(--text-secondary);
-}
-
-.merge-tree-container {
-  overflow-x: auto;
-  padding: 10px;
-  background: var(--bg-primary);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-color);
-}
-
-.merge-tree-svg {
-  display: block;
-  margin: 0 auto;
-}
-
-.tree-node-leaf {
-  fill: var(--accent-light);
-  stroke: var(--accent);
-  stroke-width: 1.5;
-}
-
-.tree-node-merge {
-  fill: var(--success-light);
-  stroke: var(--success);
-  stroke-width: 1.5;
-}
-
-.tree-node-text {
-  fill: var(--text-primary);
-  font-size: 10px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-
-.tree-cost-text {
-  fill: var(--success);
-  font-size: 9px;
-  font-weight: 600;
-  font-family: var(--font-mono);
-}
-
-.tree-cost-text.too-expensive-text {
-  fill: var(--danger);
-}
-
-.tree-line {
-  stroke: var(--border-color);
-  stroke-width: 1.5;
+.step-xp {
+  font-weight: 400;
+  font-size: 0.75rem;
+  opacity: 0.8;
 }
 
 /* ==================== Loading ==================== */
@@ -659,21 +640,17 @@ header p {
 
 /* ==================== Responsive ==================== */
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .container {
-    padding: 12px;
-  }
-
-  header {
-    padding: 20px 0 12px;
+    padding: 16px;
   }
 
   header h1 {
-    font-size: 1.4rem;
+    font-size: 1.5rem;
   }
 
   .section {
-    padding: 16px;
+    padding: 18px;
   }
 
   .item-grid {
@@ -681,9 +658,42 @@ header p {
     gap: 8px;
   }
 
+  .step {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .step-cost {
+    margin-left: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 10px;
+  }
+
+  header {
+    padding: 16px 0 10px;
+  }
+
+  header h1 {
+    font-size: 1.3rem;
+  }
+
+  .section {
+    padding: 14px;
+    border-radius: var(--radius-md);
+  }
+
+  .item-grid {
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 6px;
+  }
+
   .item-btn {
-    padding: 10px 6px;
-    font-size: 0.78rem;
+    padding: 10px 4px;
+    font-size: 0.75rem;
   }
 
   .item-icon {
@@ -695,10 +705,8 @@ header p {
     gap: 6px;
   }
 
-  .multiplier-info {
-    width: 100%;
-    padding-left: 28px;
-    font-size: 0.7rem;
+  .weight-info {
+    display: none;
   }
 
   .step {
@@ -711,6 +719,7 @@ header p {
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
+    width: 100%;
   }
 
   .plus-sign {
